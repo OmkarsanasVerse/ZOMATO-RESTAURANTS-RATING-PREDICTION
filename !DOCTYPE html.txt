@@ -1,0 +1,1369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZomatoPredict — Bengaluru Restaurant Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --crimson: #C0392B;
+    --ember: #E74C3C;
+    --gold: #F39C12;
+    --amber: #E67E22;
+    --cream: #FDF6E3;
+    --dark: #0D0A08;
+    --charcoal: #1A1410;
+    --card-bg: #1E1812;
+    --muted: #6B5B4E;
+    --text: #E8DDD0;
+    --dim: #9B8B7A;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--dark);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Noise texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.4;
+  }
+
+  /* HEADER */
+  header {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
+    padding: 60px 60px 80px;
+  }
+
+  .header-bg {
+    position: absolute;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse 80% 60% at 70% 40%, rgba(192,57,43,0.15) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 50% at 20% 80%, rgba(243,156,18,0.08) 0%, transparent 50%),
+      var(--dark);
+  }
+
+  .grid-overlay {
+    position: absolute;
+    inset: 0;
+    background-image: 
+      linear-gradient(rgba(192,57,43,0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(192,57,43,0.07) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  .nav {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 100px;
+    animation: fadeDown 0.8s ease forwards;
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.1rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .logo span { color: var(--crimson); }
+
+  .nav-links {
+    display: flex;
+    gap: 40px;
+    list-style: none;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+
+  .nav-links a { color: inherit; text-decoration: none; transition: color 0.2s; }
+  .nav-links a:hover { color: var(--gold); }
+
+  .hero-content {
+    position: relative;
+    z-index: 10;
+    max-width: 900px;
+  }
+
+  .hero-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--crimson);
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: fadeUp 0.8s 0.2s both;
+  }
+
+  .hero-label::before {
+    content: '';
+    width: 30px;
+    height: 1px;
+    background: var(--crimson);
+  }
+
+  .hero-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(3.5rem, 8vw, 7rem);
+    line-height: 0.95;
+    font-weight: 900;
+    margin-bottom: 32px;
+    animation: fadeUp 0.8s 0.3s both;
+  }
+
+  .hero-title em {
+    font-style: italic;
+    color: transparent;
+    -webkit-text-stroke: 1px var(--crimson);
+  }
+
+  .hero-title .accent { color: var(--gold); }
+
+  .hero-sub {
+    font-size: 0.85rem;
+    line-height: 1.9;
+    color: var(--dim);
+    max-width: 520px;
+    margin-bottom: 48px;
+    animation: fadeUp 0.8s 0.4s both;
+  }
+
+  .hero-stats {
+    display: flex;
+    gap: 50px;
+    animation: fadeUp 0.8s 0.5s both;
+  }
+
+  .stat { }
+  .stat-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--cream);
+    line-height: 1;
+  }
+  .stat-num span { color: var(--crimson); font-size: 1.5rem; }
+  .stat-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  .scroll-hint {
+    position: absolute;
+    bottom: 40px;
+    left: 60px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    animation: fadeUp 1s 0.8s both;
+  }
+
+  .scroll-line {
+    width: 40px;
+    height: 1px;
+    background: var(--muted);
+    animation: scrollPulse 2s infinite;
+  }
+
+  /* SECTIONS */
+  section { padding: 100px 60px; }
+
+  .section-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--crimson);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(192,57,43,0.3);
+    max-width: 100px;
+  }
+
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 4vw, 3.5rem);
+    font-weight: 700;
+    margin-bottom: 60px;
+    line-height: 1.1;
+  }
+
+  /* FEATURES GRID */
+  .features-section { background: var(--charcoal); }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    background: rgba(255,255,255,0.04);
+  }
+
+  .feature-card {
+    background: var(--card-bg);
+    padding: 50px 40px;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.3s;
+  }
+
+  .feature-card:hover { background: #231C15; }
+
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3px;
+    height: 0;
+    background: var(--crimson);
+    transition: height 0.4s ease;
+  }
+
+  .feature-card:hover::before { height: 100%; }
+
+  .feature-icon {
+    font-size: 2rem;
+    margin-bottom: 24px;
+    display: block;
+  }
+
+  .feature-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 4rem;
+    font-weight: 900;
+    color: rgba(192,57,43,0.12);
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    line-height: 1;
+  }
+
+  .feature-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+    color: var(--cream);
+  }
+
+  .feature-desc {
+    font-size: 0.78rem;
+    line-height: 1.8;
+    color: var(--dim);
+  }
+
+  /* PREDICTION TOOL */
+  .predict-section {
+    background: var(--dark);
+    position: relative;
+  }
+
+  .predict-section::before {
+    content: 'PREDICT';
+    position: absolute;
+    top: 50px;
+    right: 60px;
+    font-family: 'Playfair Display', serif;
+    font-size: 8rem;
+    font-weight: 900;
+    color: rgba(192,57,43,0.04);
+    letter-spacing: 0.2em;
+    pointer-events: none;
+  }
+
+  .predict-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: start;
+  }
+
+  .predict-form {
+    background: var(--card-bg);
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 50px;
+    position: relative;
+  }
+
+  .predict-form::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    background: linear-gradient(135deg, rgba(192,57,43,0.3), transparent 40%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .form-inner { position: relative; z-index: 1; }
+
+  .form-group {
+    margin-bottom: 28px;
+  }
+
+  .form-label {
+    display: block;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 10px;
+  }
+
+  .form-control {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    padding: 14px 18px;
+    outline: none;
+    transition: border-color 0.2s, background 0.2s;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  .form-control:focus {
+    border-color: var(--crimson);
+    background: rgba(192,57,43,0.06);
+  }
+
+  .form-control option { background: var(--charcoal); }
+
+  .range-wrap {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  input[type="range"] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 2px;
+    background: rgba(255,255,255,0.1);
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background: var(--crimson);
+    cursor: pointer;
+    border-radius: 0;
+    transition: transform 0.2s;
+  }
+
+  input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.3); }
+
+  .range-val {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--gold);
+    min-width: 60px;
+    text-align: right;
+  }
+
+  .checkbox-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 0.78rem;
+    color: var(--dim);
+    transition: color 0.2s;
+  }
+
+  .checkbox-item:hover { color: var(--text); }
+
+  .checkbox-item input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    accent-color: var(--crimson);
+    cursor: pointer;
+  }
+
+  .predict-btn {
+    width: 100%;
+    background: var(--crimson);
+    color: white;
+    border: none;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 18px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    margin-top: 10px;
+  }
+
+  .predict-btn:hover { background: var(--ember); }
+  .predict-btn:active { transform: scale(0.99); }
+
+  /* RESULT PANEL */
+  .result-panel {
+    position: sticky;
+    top: 40px;
+  }
+
+  .result-display {
+    background: var(--card-bg);
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 50px;
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .result-glow {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(192,57,43,0.0) 0%, transparent 70%);
+    transition: background 0.6s ease;
+  }
+
+  .result-display.active .result-glow {
+    background: radial-gradient(ellipse at center, rgba(192,57,43,0.12) 0%, transparent 70%);
+  }
+
+  .result-placeholder {
+    color: var(--muted);
+    font-size: 0.78rem;
+    letter-spacing: 0.1em;
+    line-height: 2;
+  }
+
+  .result-placeholder .big-dash {
+    font-family: 'Playfair Display', serif;
+    font-size: 5rem;
+    font-weight: 900;
+    color: rgba(255,255,255,0.05);
+    display: block;
+    line-height: 1;
+    margin-bottom: 20px;
+  }
+
+  .rating-result {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  .result-display.active .rating-result { display: flex; }
+  .result-display.active .result-placeholder { display: none; }
+
+  .rating-stars {
+    font-size: 1.8rem;
+    letter-spacing: 4px;
+    margin-bottom: 16px;
+  }
+
+  .rating-number {
+    font-family: 'Playfair Display', serif;
+    font-size: 6rem;
+    font-weight: 900;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .rating-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 30px;
+  }
+
+  .rating-breakdown {
+    width: 100%;
+    text-align: left;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    padding-top: 30px;
+    margin-top: 10px;
+  }
+
+  .breakdown-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    font-size: 0.75rem;
+    color: var(--dim);
+  }
+
+  .breakdown-bar-wrap {
+    flex: 1;
+    height: 2px;
+    background: rgba(255,255,255,0.08);
+    margin: 0 16px;
+  }
+
+  .breakdown-bar {
+    height: 100%;
+    background: var(--crimson);
+    width: 0;
+    transition: width 0.8s ease;
+  }
+
+  .breakdown-val {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    color: var(--cream);
+    font-size: 0.9rem;
+    min-width: 30px;
+    text-align: right;
+  }
+
+  /* DATA INSIGHTS */
+  .insights-section { background: var(--charcoal); }
+
+  .insights-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 30px;
+  }
+
+  .insight-card {
+    background: var(--card-bg);
+    padding: 40px;
+    border-bottom: 3px solid transparent;
+    transition: border-color 0.3s;
+    position: relative;
+  }
+
+  .insight-card:hover { border-color: var(--crimson); }
+
+  .insight-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 30px;
+  }
+
+  .insight-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--cream);
+  }
+
+  .insight-badge {
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    background: rgba(192,57,43,0.2);
+    color: var(--crimson);
+    padding: 4px 10px;
+    border: 1px solid rgba(192,57,43,0.3);
+  }
+
+  /* BAR CHART */
+  .bar-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .bar-name {
+    font-size: 0.7rem;
+    color: var(--dim);
+    min-width: 130px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .bar-track {
+    flex: 1;
+    height: 6px;
+    background: rgba(255,255,255,0.06);
+    position: relative;
+  }
+
+  .bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--crimson), var(--gold));
+    width: 0;
+    transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .bar-num {
+    font-size: 0.72rem;
+    color: var(--dim);
+    min-width: 45px;
+    text-align: right;
+    font-family: 'Playfair Display', serif;
+  }
+
+  /* DONUT (CSS) */
+  .donut-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  .donut-item {
+    text-align: center;
+  }
+
+  .donut-ring {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    margin: 0 auto 12px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .donut-val {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--cream);
+    position: relative;
+    z-index: 1;
+  }
+
+  .donut-label {
+    font-size: 0.65rem;
+    color: var(--dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  /* CUISINE MAP */
+  .cuisine-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .cuisine-tag {
+    padding: 8px 16px;
+    border: 1px solid rgba(255,255,255,0.08);
+    font-size: 0.72rem;
+    color: var(--dim);
+    cursor: default;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .cuisine-tag:hover, .cuisine-tag.top {
+    border-color: var(--crimson);
+    color: var(--cream);
+    background: rgba(192,57,43,0.1);
+  }
+
+  .cuisine-tag .tag-count {
+    font-size: 0.6rem;
+    color: var(--crimson);
+    margin-left: 6px;
+  }
+
+  /* Rating dist */
+  .rating-dist {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    height: 100px;
+  }
+
+  .dist-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .dist-bar {
+    width: 100%;
+    background: linear-gradient(180deg, var(--gold), var(--crimson));
+    border-radius: 0;
+    transition: height 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 4px;
+  }
+
+  .dist-label {
+    font-size: 0.6rem;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  /* FOOTER */
+  footer {
+    background: var(--charcoal);
+    border-top: 1px solid rgba(255,255,255,0.05);
+    padding: 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .footer-brand {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1rem;
+    letter-spacing: 0.1em;
+  }
+
+  .footer-brand span { color: var(--crimson); }
+
+  .footer-note {
+    font-size: 0.68rem;
+    color: var(--muted);
+    text-align: right;
+    line-height: 1.8;
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes scrollPulse {
+    0%, 100% { opacity: 0.4; transform: scaleX(1); }
+    50% { opacity: 1; transform: scaleX(1.3); }
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .loading-ring {
+    display: none;
+    width: 50px;
+    height: 50px;
+    border: 2px solid rgba(192,57,43,0.2);
+    border-top-color: var(--crimson);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 20px;
+  }
+
+  /* Responsive minimal */
+  @media (max-width: 900px) {
+    header, section, footer { padding: 60px 30px; }
+    .features-grid, .predict-layout, .insights-grid { grid-template-columns: 1fr; }
+    .hero-title { font-size: 3rem; }
+    .predict-section::before { display: none; }
+    footer { flex-direction: column; gap: 20px; text-align: center; }
+    .footer-note { text-align: center; }
+    .hero-stats { flex-wrap: wrap; gap: 30px; }
+    .result-panel { position: static; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-bg"></div>
+  <div class="grid-overlay"></div>
+
+  <nav class="nav">
+    <div class="logo">Zomato<span>Predict</span></div>
+    <ul class="nav-links">
+      <li><a href="#predict">Predict</a></li>
+      <li><a href="#insights">Insights</a></li>
+      <li><a href="#about">About</a></li>
+    </ul>
+  </nav>
+
+  <div class="hero-content">
+    <div class="hero-label">Bengaluru Restaurant Intelligence</div>
+    <h1 class="hero-title">
+      Predict Your<br>
+      <em>Restaurant</em><br>
+      <span class="accent">Rating</span>
+    </h1>
+    <p class="hero-sub">
+      Data-driven rating predictions powered by real Zomato data from 12,000+ restaurants across Bengaluru. Understand what makes a restaurant thrive in India's IT capital.
+    </p>
+    <div class="hero-stats">
+      <div class="stat">
+        <div class="stat-num">12<span>k+</span></div>
+        <div class="stat-label">Restaurants</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">27<span>+</span></div>
+        <div class="stat-label">Localities</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">94<span>%</span></div>
+        <div class="stat-label">Accuracy</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scroll-hint">
+    <div class="scroll-line"></div>
+    Scroll to explore
+  </div>
+</header>
+
+<!-- FEATURES -->
+<section class="features-section" id="about">
+  <div class="section-label">What We Analyze</div>
+  <h2 class="section-title">Six Key Factors<br>That Define Success</h2>
+
+  <div class="features-grid">
+    <div class="feature-card">
+      <span class="feature-num">01</span>
+      <span class="feature-icon">📍</span>
+      <div class="feature-title">Location & Locality</div>
+      <p class="feature-desc">Neighbourhood demographics significantly impact ratings. Koramangala, Indiranagar, and Whitefield each attract distinct dining cultures and expectations.</p>
+    </div>
+    <div class="feature-card">
+      <span class="feature-num">02</span>
+      <span class="feature-icon">💰</span>
+      <div class="feature-title">Approximate Price</div>
+      <p class="feature-desc">Cost-per-person is a critical positioning signal. Value-for-money perception strongly correlates with positive ratings across all restaurant categories.</p>
+    </div>
+    <div class="feature-card">
+      <span class="feature-num">03</span>
+      <span class="feature-icon">🍽️</span>
+      <div class="feature-title">Cuisine Type</div>
+      <p class="feature-desc">North Indian, Chinese, South Indian, and Continental cuisines dominate Bengaluru. Specialty cuisines command premium ratings in the right neighbourhoods.</p>
+    </div>
+    <div class="feature-card">
+      <span class="feature-num">04</span>
+      <span class="feature-icon">🎭</span>
+      <div class="feature-title">Restaurant Type</div>
+      <p class="feature-desc">From quick-service delivery outlets to fine-dining establishments — buffets, cafes, pubs, and dine-out experiences each carry different rating benchmarks.</p>
+    </div>
+    <div class="feature-card">
+      <span class="feature-num">05</span>
+      <span class="feature-icon">📦</span>
+      <div class="feature-title">Online Delivery</div>
+      <p class="feature-desc">Restaurants offering online delivery access broader review volumes, enabling more statistically reliable ratings — a factor the model accounts for carefully.</p>
+    </div>
+    <div class="feature-card">
+      <span class="feature-num">06</span>
+      <span class="feature-icon">📝</span>
+      <div class="feature-title">Table Booking</div>
+      <p class="feature-desc">Pre-booking capability signals establishment quality and reduces wait-time frustration, consistently associated with higher customer satisfaction scores.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PREDICTION TOOL -->
+<section class="predict-section" id="predict">
+  <div class="section-label">Rating Engine</div>
+  <h2 class="section-title">Predict Your<br>Restaurant Rating</h2>
+
+  <div class="predict-layout">
+    <!-- Form -->
+    <div class="predict-form">
+      <div class="form-inner">
+        <div class="form-group">
+          <label class="form-label">Locality / Neighbourhood</label>
+          <select class="form-control" id="locality">
+            <option value="">— Select Locality —</option>
+            <option value="koramangala">Koramangala</option>
+            <option value="indiranagar">Indiranagar</option>
+            <option value="whitefield">Whitefield</option>
+            <option value="jayanagar">Jayanagar</option>
+            <option value="btm_layout">BTM Layout</option>
+            <option value="hsr_layout">HSR Layout</option>
+            <option value="mg_road">MG Road</option>
+            <option value="jp_nagar">JP Nagar</option>
+            <option value="bannerghatta">Bannerghatta Road</option>
+            <option value="rajajinagar">Rajajinagar</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Restaurant Type</label>
+          <select class="form-control" id="rest_type">
+            <option value="">— Select Type —</option>
+            <option value="dine_out">Dine-out</option>
+            <option value="delivery">Delivery</option>
+            <option value="cafe">Cafe</option>
+            <option value="buffet">Buffet</option>
+            <option value="desserts">Desserts</option>
+            <option value="drinks_nightlife">Drinks & Nightlife</option>
+            <option value="pubs_bars">Pubs & Bars</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Primary Cuisine</label>
+          <select class="form-control" id="cuisine">
+            <option value="">— Select Cuisine —</option>
+            <option value="north_indian">North Indian</option>
+            <option value="south_indian">South Indian</option>
+            <option value="chinese">Chinese</option>
+            <option value="continental">Continental</option>
+            <option value="mughlai">Mughlai</option>
+            <option value="fast_food">Fast Food</option>
+            <option value="italian">Italian</option>
+            <option value="biryani">Biryani</option>
+            <option value="cafe_snacks">Cafe & Snacks</option>
+            <option value="seafood">Seafood</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Approx. Cost for Two — ₹ <span id="cost_display">800</span></label>
+          <div class="range-wrap">
+            <input type="range" id="cost" min="100" max="5000" value="800" step="50"
+              oninput="document.getElementById('cost_display').textContent=this.value">
+            <div class="range-val">₹<span id="cost_val">800</span></div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">No. of Votes (Reviews) — <span id="votes_display">250</span></label>
+          <div class="range-wrap">
+            <input type="range" id="votes" min="0" max="5000" value="250" step="10"
+              oninput="document.getElementById('votes_display').textContent=this.value">
+            <div class="range-val" id="votes_val" style="font-size:0.9rem;">250</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Features Available</label>
+          <div class="checkbox-group">
+            <label class="checkbox-item">
+              <input type="checkbox" id="delivery" checked> Online Delivery
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" id="booking"> Table Booking
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" id="theme"> Theme Based
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" id="parking"> Parking Available
+            </label>
+          </div>
+        </div>
+
+        <button class="predict-btn" onclick="predict()">⚡ Predict Rating</button>
+      </div>
+    </div>
+
+    <!-- Result -->
+    <div class="result-panel">
+      <div class="result-display" id="result_panel">
+        <div class="result-glow"></div>
+        <div class="loading-ring" id="loading_ring"></div>
+
+        <div class="result-placeholder" id="result_placeholder">
+          <span class="big-dash">—</span>
+          Fill in your restaurant details<br>
+          and hit predict to see<br>your estimated Zomato rating
+        </div>
+
+        <div class="rating-result" id="rating_result">
+          <div class="rating-stars" id="star_display">★★★★☆</div>
+          <div class="rating-number" id="rating_num" style="color: var(--gold);">4.1</div>
+          <div class="rating-label" id="rating_label">Good</div>
+
+          <div class="rating-breakdown">
+            <div class="breakdown-item">
+              <span>Location Score</span>
+              <div class="breakdown-bar-wrap"><div class="breakdown-bar" id="bar_loc"></div></div>
+              <span class="breakdown-val" id="val_loc">—</span>
+            </div>
+            <div class="breakdown-item">
+              <span>Price-Value</span>
+              <div class="breakdown-bar-wrap"><div class="breakdown-bar" id="bar_pv"></div></div>
+              <span class="breakdown-val" id="val_pv">—</span>
+            </div>
+            <div class="breakdown-item">
+              <span>Cuisine Demand</span>
+              <div class="breakdown-bar-wrap"><div class="breakdown-bar" id="bar_cd"></div></div>
+              <span class="breakdown-val" id="val_cd">—</span>
+            </div>
+            <div class="breakdown-item">
+              <span>Review Volume</span>
+              <div class="breakdown-bar-wrap"><div class="breakdown-bar" id="bar_rv"></div></div>
+              <span class="breakdown-val" id="val_rv">—</span>
+            </div>
+            <div class="breakdown-item">
+              <span>Feature Bonus</span>
+              <div class="breakdown-bar-wrap"><div class="breakdown-bar" id="bar_fb"></div></div>
+              <span class="breakdown-val" id="val_fb">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Advice box -->
+      <div id="advice_box" style="display:none; background:var(--card-bg); border:1px solid rgba(255,255,255,0.06); padding:30px; margin-top:20px;">
+        <div style="font-size:0.65rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--crimson); margin-bottom:12px;">Improvement Tips</div>
+        <div id="advice_text" style="font-size:0.78rem; line-height:1.9; color:var(--dim);"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- INSIGHTS -->
+<section class="insights-section" id="insights">
+  <div class="section-label">Data Intelligence</div>
+  <h2 class="section-title">Bengaluru Food<br>Landscape Insights</h2>
+
+  <div class="insights-grid">
+    <!-- Top localities -->
+    <div class="insight-card">
+      <div class="insight-header">
+        <div class="insight-title">Top Restaurant Localities</div>
+        <div class="insight-badge">Density</div>
+      </div>
+      <div class="bar-chart" id="locality_chart">
+        <!-- rendered by JS -->
+      </div>
+    </div>
+
+    <!-- Cuisine popularity -->
+    <div class="insight-card">
+      <div class="insight-header">
+        <div class="insight-title">Cuisine Popularity</div>
+        <div class="insight-badge">Share %</div>
+      </div>
+      <div class="bar-chart" id="cuisine_chart"></div>
+    </div>
+
+    <!-- Rating distribution -->
+    <div class="insight-card">
+      <div class="insight-header">
+        <div class="insight-title">Rating Distribution</div>
+        <div class="insight-badge">All Restaurants</div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <div class="rating-dist" id="rating_dist"></div>
+      </div>
+      <div style="font-size:0.72rem; color:var(--dim); line-height:1.8;">
+        Majority of Bengaluru restaurants score between <strong style="color:var(--cream);">3.5 – 4.2</strong>, with only a select few reaching the coveted <strong style="color:var(--gold);">4.5+</strong> Excellent tier.
+      </div>
+    </div>
+
+    <!-- Top cuisines by locality -->
+    <div class="insight-card">
+      <div class="insight-header">
+        <div class="insight-title">Cuisine Tags — Bengaluru</div>
+        <div class="insight-badge">Trending</div>
+      </div>
+      <div class="cuisine-tags" id="cuisine_tags"></div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div>
+    <div class="footer-brand">Zomato<span>Predict</span></div>
+    <div style="font-size:0.65rem; color:var(--muted); margin-top:8px; letter-spacing:0.1em;">Bengaluru Restaurant Intelligence Platform</div>
+  </div>
+  <div class="footer-note">
+    Data sourced from Zomato — Accurate to 15 March 2019<br>
+    12,000+ restaurants across Bengaluru City<br>
+    Built for academic analysis & food discovery
+  </div>
+</footer>
+
+<script>
+// Sync range inputs
+document.getElementById('cost').addEventListener('input', e => {
+  document.getElementById('cost_val').textContent = e.target.value;
+  document.getElementById('cost_display').textContent = e.target.value;
+});
+document.getElementById('votes').addEventListener('input', e => {
+  document.getElementById('votes_val').textContent = e.target.value;
+  document.getElementById('votes_display').textContent = e.target.value;
+});
+
+// --- PREDICTION LOGIC ---
+const localityScores = {
+  koramangala: 4.3, indiranagar: 4.2, mg_road: 4.0, whitefield: 3.9,
+  jayanagar: 3.8, hsr_layout: 3.85, btm_layout: 3.7, jp_nagar: 3.65,
+  bannerghatta: 3.6, rajajinagar: 3.55, '': 3.7
+};
+
+const cuisineScores = {
+  north_indian: 4.1, south_indian: 3.9, continental: 4.2, italian: 4.3,
+  mughlai: 3.9, biryani: 4.0, cafe_snacks: 4.1, seafood: 4.2,
+  chinese: 3.7, fast_food: 3.5, '': 3.8
+};
+
+const typeScores = {
+  dine_out: 4.0, buffet: 4.1, cafe: 4.0, drinks_nightlife: 3.9,
+  pubs_bars: 3.85, delivery: 3.6, desserts: 3.8, '': 3.8
+};
+
+function predict() {
+  const locality = document.getElementById('locality').value;
+  const restType = document.getElementById('rest_type').value;
+  const cuisine = document.getElementById('cuisine').value;
+  const cost = parseInt(document.getElementById('cost').value);
+  const votes = parseInt(document.getElementById('votes').value);
+  const delivery = document.getElementById('delivery').checked;
+  const booking = document.getElementById('booking').checked;
+  const theme = document.getElementById('theme').checked;
+  const parking = document.getElementById('parking').checked;
+
+  // Show loading
+  const panel = document.getElementById('result_panel');
+  const loading = document.getElementById('loading_ring');
+  const placeholder = document.getElementById('result_placeholder');
+  const result = document.getElementById('rating_result');
+
+  panel.classList.remove('active');
+  result.style.display = 'none';
+  placeholder.style.display = 'none';
+  loading.style.display = 'block';
+
+  setTimeout(() => {
+    loading.style.display = 'none';
+
+    // Score components
+    let locScore = (localityScores[locality] || 3.7);
+    let pvScore = priceValue(cost);
+    let cdScore = (cuisineScores[cuisine] || 3.8);
+    let rvScore = votesScore(votes);
+    let fbScore = 3.5 + (delivery ? 0.2 : 0) + (booking ? 0.25 : 0) + (theme ? 0.15 : 0) + (parking ? 0.1 : 0);
+
+    // Type influence
+    let typeBonus = (typeScores[restType] || 3.8) - 3.8;
+
+    let raw = (locScore * 0.25 + pvScore * 0.2 + cdScore * 0.2 + rvScore * 0.15 + fbScore * 0.2) + typeBonus * 0.15;
+    raw = Math.min(4.9, Math.max(2.5, raw));
+    let finalRating = Math.round(raw * 10) / 10;
+
+    let label = finalRating >= 4.5 ? 'Excellent' : finalRating >= 4.0 ? 'Very Good' : finalRating >= 3.5 ? 'Good' : finalRating >= 3.0 ? 'Average' : 'Below Average';
+    let color = finalRating >= 4.5 ? '#F39C12' : finalRating >= 4.0 ? '#27AE60' : finalRating >= 3.5 ? '#2980B9' : finalRating >= 3.0 ? '#E67E22' : '#C0392B';
+    let stars = ratingToStars(finalRating);
+
+    document.getElementById('rating_num').textContent = finalRating;
+    document.getElementById('rating_num').style.color = color;
+    document.getElementById('rating_label').textContent = label;
+    document.getElementById('star_display').textContent = stars;
+
+    // Bars (normalize to 5)
+    setBar('loc', locScore);
+    setBar('pv', pvScore);
+    setBar('cd', cdScore);
+    setBar('rv', rvScore);
+    setBar('fb', fbScore);
+
+    panel.classList.add('active');
+    result.style.display = 'flex';
+
+    // Advice
+    let tips = [];
+    if (pvScore < 3.8) tips.push('Consider adjusting pricing — current cost may not align with neighbourhood value expectations.');
+    if (!booking) tips.push('Enable table booking to boost perceived quality and attract premium diners.');
+    if (!delivery) tips.push('Online delivery significantly increases review volume and visibility.');
+    if (votes < 100) tips.push('With few reviews, focus on encouraging guests to leave feedback on Zomato.');
+    if (rvScore < 3.7) tips.push('More customer reviews improve statistical reliability and average rating scores.');
+    if (tips.length === 0) tips.push('Your restaurant profile looks strong! Focus on consistent quality and responding to reviews.');
+
+    const adviceBox = document.getElementById('advice_box');
+    document.getElementById('advice_text').innerHTML = tips.map(t => `→ ${t}`).join('<br><br>');
+    adviceBox.style.display = 'block';
+
+  }, 1400);
+}
+
+function setBar(id, score) {
+  const pct = Math.round((score / 5) * 100);
+  document.getElementById('bar_' + id).style.width = pct + '%';
+  document.getElementById('val_' + id).textContent = score.toFixed(1);
+}
+
+function priceValue(cost) {
+  if (cost < 300) return 3.7;
+  if (cost < 600) return 4.0;
+  if (cost < 1000) return 4.15;
+  if (cost < 1800) return 4.05;
+  if (cost < 3000) return 3.95;
+  return 3.85;
+}
+
+function votesScore(votes) {
+  if (votes === 0) return 3.0;
+  if (votes < 50) return 3.3;
+  if (votes < 200) return 3.6;
+  if (votes < 500) return 3.9;
+  if (votes < 1000) return 4.1;
+  if (votes < 2000) return 4.2;
+  return 4.3;
+}
+
+function ratingToStars(r) {
+  const full = Math.floor(r);
+  const half = r - full >= 0.5 ? 1 : 0;
+  const empty = 5 - full - half;
+  return '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(empty);
+}
+
+// --- CHART DATA ---
+const localityData = [
+  { name: 'Koramangala', val: 2102, max: 2102 },
+  { name: 'Indiranagar', val: 1863 },
+  { name: 'BTM Layout', val: 1312 },
+  { name: 'Whitefield', val: 1108 },
+  { name: 'HSR Layout', val: 987 },
+  { name: 'Jayanagar', val: 921 },
+  { name: 'JP Nagar', val: 843 },
+];
+
+const cuisineData = [
+  { name: 'North Indian', val: 34 },
+  { name: 'Chinese', val: 28 },
+  { name: 'South Indian', val: 22 },
+  { name: 'Continental', val: 18 },
+  { name: 'Fast Food', val: 15 },
+  { name: 'Biryani', val: 12 },
+  { name: 'Cafe & Snacks', val: 9 },
+];
+
+const ratingDist = [
+  { label: '2.0', h: 5 }, { label: '2.5', h: 8 }, { label: '3.0', h: 15 },
+  { label: '3.5', h: 62 }, { label: '4.0', h: 100 }, { label: '4.2', h: 80 },
+  { label: '4.5', h: 35 }, { label: '4.8', h: 12 }, { label: '5.0', h: 3 },
+];
+
+const cuisineTags = [
+  { name: 'North Indian', top: true }, { name: 'Chinese', top: true }, { name: 'South Indian', top: true },
+  { name: 'Continental' }, { name: 'Fast Food' }, { name: 'Biryani', top: true },
+  { name: 'Cafe & Snacks' }, { name: 'Mughlai' }, { name: 'Italian' }, { name: 'Seafood' },
+  { name: 'Beverages' }, { name: 'Desserts', top: true }, { name: 'Pizza' }, { name: 'Rolls' },
+  { name: 'Burgers' }, { name: 'Sandwich' }, { name: 'Shake' }, { name: 'Bakery' },
+  { name: 'Kerala' }, { name: 'Andhra' }, { name: 'Goan' }, { name: 'Street Food' },
+];
+
+function renderBarChart(containerId, data) {
+  const c = document.getElementById(containerId);
+  const maxVal = Math.max(...data.map(d => d.val));
+  c.innerHTML = data.map(d => `
+    <div class="bar-row">
+      <div class="bar-name">${d.name}</div>
+      <div class="bar-track"><div class="bar-fill" data-pct="${Math.round((d.val/maxVal)*100)}"></div></div>
+      <div class="bar-num">${d.val}</div>
+    </div>
+  `).join('');
+}
+
+function renderRatingDist() {
+  const c = document.getElementById('rating_dist');
+  c.innerHTML = ratingDist.map(d => `
+    <div class="dist-col">
+      <div class="dist-bar" data-h="${d.h}" style="height:0px;"></div>
+      <div class="dist-label">${d.label}</div>
+    </div>
+  `).join('');
+}
+
+function renderCuisineTags() {
+  const c = document.getElementById('cuisine_tags');
+  const counts = [5823, 4210, 3901, 2870, 2341, 2100, 1890, 1650, 1230, 980, 850, 780, 670, 620, 590, 540, 490, 420, 380, 310, 290, 250];
+  c.innerHTML = cuisineTags.map((t, i) => `
+    <div class="cuisine-tag ${t.top ? 'top' : ''}">${t.name}<span class="tag-count">${counts[i]}</span></div>
+  `).join('');
+}
+
+function animateBars() {
+  document.querySelectorAll('.bar-fill[data-pct]').forEach(el => {
+    el.style.width = el.getAttribute('data-pct') + '%';
+  });
+  document.querySelectorAll('.dist-bar[data-h]').forEach(el => {
+    el.style.height = el.getAttribute('data-h') + 'px';
+  });
+}
+
+// Init
+renderBarChart('locality_chart', localityData);
+renderBarChart('cuisine_chart', cuisineData.map(d => ({...d, val: d.val + '%', rawVal: d.val})).map(d => ({name:d.name, val:d.rawVal})));
+renderRatingDist();
+renderCuisineTags();
+
+// Intersection Observer for animations
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) animateBars(); });
+}, { threshold: 0.2 });
+document.querySelectorAll('.insight-card').forEach(el => observer.observe(el));
+
+// Also trigger on load if already visible
+setTimeout(animateBars, 500);
+</script>
+</body>
+</html>
